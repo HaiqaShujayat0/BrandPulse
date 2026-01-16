@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-slate-800;
+  }
+  
+  body {
+    @apply bg-slate-950 text-slate-100;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .layout-shell {
+    @apply flex min-h-screen bg-slate-950;
+  }
+
+  .sidebar {
+    @apply fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 flex flex-col;
+  }
+
+  .main-content {
+    @apply ml-64 flex-1 flex flex-col;
+  }
+
+  .content-area {
+    @apply flex-1 overflow-y-auto flex flex-col items-center justify-start w-full px-4;
+  }
+
+  .panel {
+    @apply rounded-lg border border-slate-800 bg-slate-900/50;
+  }
+
+  .panel-header {
+    @apply flex items-center justify-between border-b border-slate-800 px-6 py-4;
+  }
+
+  .panel-body {
+    @apply p-6;
+  }
+
+  .stat-card {
+    @apply panel hover:border-indigo-500/50 transition-colors;
+  }
+
+  .data-row {
+    @apply flex items-center gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/30 transition-colors;
+  }
+
+  .mono {
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
+  }
+}
+
