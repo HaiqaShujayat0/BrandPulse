@@ -1,6 +1,0 @@
-{
-  "/config/page": "app/config/page.js",
-  "/analytics/page": "app/analytics/page.js",
-  "/sources/page": "app/sources/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
-}
