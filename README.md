@@ -189,3 +189,53 @@ ISC
 
 **Last Updated**: January 2026
 **Status**: Production-ready with automated monitoring and AI-powered insights
+
+
+Prisma Scheme :
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id           String    @id @default(uuid())
+  name         String
+  searchTerms  String    // JSON string array
+  excludedTerms String   // JSON string array
+  mentions     Mention[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Mention {
+  id             String   @id @default(uuid())
+  brandId        String
+  brand          Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  source         String   // "reddit" | "hn" | "rss"
+  title          String
+  content        String   @default("")
+  url            String   @unique
+  publishedAt    DateTime
+  isSpam         Boolean  @default(false)
+  // New dynamic fields
+  sentiment      String?  // "positive" | "negative" | "neutral"
+  sentimentScore Float?   // 0-1 confidence score
+  author         String?  // Actual author name
+  reach          Int      @default(0) // Upvotes/points/impressions
+  relevanceScore Int      @default(0) // Number of search terms matched (0 to N)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([source])
+  @@index([publishedAt])
+  @@index([sentiment])
+  @@index([relevanceScore])
+}
+
+
+path :D:\BrandPulse\frontend\prisma\schema.prisma
