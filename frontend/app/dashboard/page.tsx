@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { RefreshCcw, FileDown, Loader2 } from "lucide-react";
+import { RefreshCcw, FileDown, Loader2, Menu } from "lucide-react";
 import {
   fetchMentions,
   fetchBrandStats,
@@ -12,7 +12,7 @@ import {
   type BrandStats
 } from "@/lib/api";
 import { FeedTable } from "@/components/FeedTable";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar, MobileMenuButton } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
 import { AIAnalysis } from "@/components/AIAnalysis";
 import { PopularTopics } from "@/components/PopularTopics";
@@ -69,6 +69,8 @@ export default function DashboardOverview() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [exportError, setExportError] = React.useState<string | null>(null);
   const pageLimit = 50;
 
   const { mentions: rawMentions, pagination, isLoading, error, mutate: mutateMentions } = useMentions(selectedBrandId, currentPage, pageLimit);
@@ -107,26 +109,31 @@ export default function DashboardOverview() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-950/50 backdrop-blur-md z-10">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg font-semibold text-slate-100">Intelligence Console</h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 bg-slate-950/50 backdrop-blur-md z-10">
+          <div className="flex items-center gap-3 md:gap-6">
+            {/* Mobile menu button */}
+            <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)} />
+
+            <div className="flex items-center gap-2 md:gap-4">
+              <h1 className="text-base md:text-lg font-semibold text-slate-100">Dashboard</h1>
+              <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
                 Live
               </span>
             </div>
 
             {/* Brand Selector */}
-            <div className="h-4 w-[1px] bg-slate-800"></div>
-            <BrandSelector
-              selectedBrandId={selectedBrandId}
-              onBrandChange={setSelectedBrandId}
-              onScrapeComplete={handleScrapeComplete}
-            />
+            <div className="hidden md:block h-4 w-[1px] bg-slate-800"></div>
+            <div className="hidden sm:block">
+              <BrandSelector
+                selectedBrandId={selectedBrandId}
+                onBrandChange={setSelectedBrandId}
+                onScrapeComplete={handleScrapeComplete}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -142,21 +149,38 @@ export default function DashboardOverview() {
               onClick={async () => {
                 if (!selectedBrandId || !selectedBrand) return;
                 setIsExporting(true);
+                setExportError(null);
                 try {
-                  const [analysisRes, topicsRes] = await Promise.all([
+                  // Fetch analysis and topics, but don't fail if they error
+                  const [analysisRes, topicsRes] = await Promise.allSettled([
                     fetchAIAnalysis(selectedBrandId),
                     fetchTopics(selectedBrandId),
                   ]);
+
+                  const analysis = analysisRes.status === 'fulfilled' ? analysisRes.value?.analysis : null;
+                  const topics = topicsRes.status === 'fulfilled' ? topicsRes.value?.topics : [];
+
                   await generatePDFReport({
                     brandName: selectedBrand.name,
                     generatedAt: new Date().toLocaleString(),
-                    stats: stats || null,
+                    stats: stats || {
+                      brandId: selectedBrandId,
+                      totalMentions: rawMentions.length,
+                      avgSentiment: 50,
+                      activeCrises: 0,
+                      reach: 0,
+                      positiveMentions: rawMentions.filter(m => m.sentiment === 'positive').length,
+                      negativeMentions: rawMentions.filter(m => m.sentiment === 'negative').length,
+                      neutralMentions: rawMentions.filter(m => m.sentiment === 'neutral').length,
+                    },
                     mentions: rawMentions,
-                    topics: topicsRes?.topics || [],
-                    analysis: analysisRes?.analysis || null,
+                    topics: topics || [],
+                    analysis: analysis || null,
                   });
                 } catch (error) {
                   console.error('Failed to export PDF:', error);
+                  setExportError('Failed to generate report. Please try again.');
+                  setTimeout(() => setExportError(null), 5000);
                 } finally {
                   setIsExporting(false);
                 }
@@ -179,8 +203,24 @@ export default function DashboardOverview() {
           </div>
         </header>
 
+        {/* Mobile Brand Selector */}
+        <div className="sm:hidden px-4 py-3 border-b border-slate-800">
+          <BrandSelector
+            selectedBrandId={selectedBrandId}
+            onBrandChange={setSelectedBrandId}
+            onScrapeComplete={handleScrapeComplete}
+          />
+        </div>
+
+        {/* Export Error Toast */}
+        {exportError && (
+          <div className="fixed top-4 right-4 z-50 bg-red-900/90 border border-red-700 text-red-200 px-4 py-3 rounded-lg shadow-lg text-sm">
+            {exportError}
+          </div>
+        )}
+
         {/* Dashboard Body */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8">
           {/* No Brand Selected Message */}
           {!selectedBrandId && (
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 text-center">
@@ -204,7 +244,7 @@ export default function DashboardOverview() {
           {selectedBrandId && (
             <>
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <StatCard
                   label="Total Mentions"
                   value={stats?.totalMentions?.toLocaleString() || mentions.length.toLocaleString()}
@@ -232,7 +272,7 @@ export default function DashboardOverview() {
               </div>
 
               {/* Main Content Area: Feed & Summary */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                 {/* Left: Mentions Feed (2/3 width) */}
                 <div className="lg:col-span-2">
                   <FeedTable

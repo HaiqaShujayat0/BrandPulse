@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { createBrand } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar, MobileMenuButton } from "@/components/Sidebar";
 
 export default function ConfigurationPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
     name: "",
@@ -63,22 +64,26 @@ export default function ConfigurationPage() {
 
   return (
     <div className="layout-shell flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
 
       {/* Main Container - flex-1 ensures it takes remaining space after sidebar */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/95 backdrop-blur-xl">
-          <div className="flex items-center justify-between px-8 py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-100">Configuration</h1>
-              <p className="text-sm text-slate-400 mt-1">
-                Manage brands and monitoring settings
-              </p>
+          <div className="flex items-center justify-between px-4 md:px-8 py-4">
+            <div className="flex items-center gap-3">
+              <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)} />
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-slate-100">Configuration</h1>
+                <p className="hidden sm:block text-sm text-slate-400 mt-1">
+                  Manage brands and monitoring settings
+                </p>
+              </div>
             </div>
             <Button
               variant="ghost"
               onClick={() => router.push("/dashboard")}
+              className="hidden sm:flex"
             >
               ← Back to Dashboard
             </Button>

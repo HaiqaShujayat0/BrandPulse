@@ -15,7 +15,7 @@ import {
     AlertTriangle,
     Save
 } from "lucide-react";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar, MobileMenuButton } from "@/components/Sidebar";
 import { fetchAllBrands, updateBrand, deleteBrand, Brand } from "@/lib/api";
 
 // Edit Modal Component
@@ -345,6 +345,7 @@ export default function PortfolioPage() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [editingBrand, setEditingBrand] = React.useState<Brand | null>(null);
     const [deletingBrand, setDeletingBrand] = React.useState<Brand | null>(null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
     // Load brands
     React.useEffect(() => {
@@ -380,23 +381,24 @@ export default function PortfolioPage() {
 
     return (
         <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
-            <Sidebar />
+            <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
             <main className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-950/50 backdrop-blur-md shrink-0">
+                <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 bg-slate-950/50 backdrop-blur-md shrink-0">
                     <div className="flex items-center gap-3">
-                        <Briefcase size={20} className="text-indigo-400" />
+                        <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)} />
+                        <Briefcase size={20} className="text-indigo-400 hidden sm:block" />
                         <div>
-                            <h1 className="text-lg font-semibold">Brand Portfolio</h1>
-                            <p className="text-xs text-slate-500">Manage and edit your monitored brands</p>
+                            <h1 className="text-base md:text-lg font-semibold">Portfolio</h1>
+                            <p className="hidden sm:block text-xs text-slate-500">Manage your monitored brands</p>
                         </div>
                     </div>
                     <button
                         onClick={() => router.push("/config")}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/30"
+                        className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/30"
                     >
-                        <Plus size={18} />
-                        Add Brand
+                        <Plus size={16} />
+                        <span className="hidden sm:inline">Add Brand</span>
                     </button>
                 </header>
 
@@ -458,6 +460,6 @@ export default function PortfolioPage() {
                 onClose={() => setDeletingBrand(null)}
                 onConfirm={handleDelete}
             />
-        </div>
+        </div >
     );
 }

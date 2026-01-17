@@ -12,7 +12,7 @@ import {
   ChevronDown,
   Sparkles
 } from "lucide-react";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar, MobileMenuButton } from "@/components/Sidebar";
 import { SentimentPieChart } from "@/components/SentimentPieChart";
 import { SourceBarChart } from "@/components/SourceBarChart";
 import { useBrand } from "@/lib/BrandContext";
@@ -220,6 +220,7 @@ export default function AnalyticsPage() {
   const [topics, setTopics] = React.useState<TopicResult[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   // Load data when brand changes
   const loadData = React.useCallback(async () => {
@@ -276,7 +277,7 @@ export default function AnalyticsPage() {
   if (brandLoading) {
     return (
       <div className="flex h-screen bg-slate-950 text-slate-100">
-        <Sidebar />
+        <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 size={32} className="animate-spin text-indigo-500" />
         </main>
@@ -287,12 +288,13 @@ export default function AnalyticsPage() {
   if (!selectedBrandId) {
     return (
       <div className="flex h-screen bg-slate-950 text-slate-100">
-        <Sidebar />
+        <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
         <main className="flex-1 flex flex-col">
-          <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-950/50 backdrop-blur-md">
+          <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 bg-slate-950/50 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <BarChart3 size={20} className="text-indigo-400" />
-              <h1 className="text-lg font-semibold">Analytics</h1>
+              <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)} />
+              <BarChart3 size={20} className="text-indigo-400 hidden sm:block" />
+              <h1 className="text-base md:text-lg font-semibold">Analytics</h1>
             </div>
             <AnalyticsBrandSelector />
           </header>
@@ -314,18 +316,19 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-950/50 backdrop-blur-md shrink-0">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 bg-slate-950/50 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-3">
-            <BarChart3 size={20} className="text-indigo-400" />
-            <h1 className="text-lg font-semibold">Analytics</h1>
+            <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)} />
+            <BarChart3 size={20} className="text-indigo-400 hidden sm:block" />
+            <h1 className="text-base md:text-lg font-semibold">Analytics</h1>
             {selectedBrand && (
-              <span className="text-slate-500">•</span>
+              <span className="hidden sm:inline text-slate-500">•</span>
             )}
             {selectedBrand && (
-              <span className="text-sm text-slate-400">{selectedBrand.name}</span>
+              <span className="hidden sm:inline text-sm text-slate-400">{selectedBrand.name}</span>
             )}
           </div>
           <div className="flex items-center gap-4">
