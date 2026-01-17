@@ -9,15 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "0.24.1",
+    "@prisma/client": "5.10.2",
+    "axios": "1.13.2",
+    "cheerio": "1.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.562.0",
     "next": "14.1.0",
+    "prisma": "5.10.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "recharts": "^2.12.5",
+    "rss-parser": "3.13.0",
     "swr": "^2.3.8",
     "tailwind-merge": "^2.2.1"
   },

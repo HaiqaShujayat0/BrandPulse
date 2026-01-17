@@ -7,6 +7,7 @@ import {
   BarChart3,
   Globe,
   Settings,
+  Briefcase,
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
   { name: "Analytics", href: "/analytics", icon: <BarChart3 size={18} /> },
+  { name: "Portfolio", href: "/portfolio", icon: <Briefcase size={18} /> },
   { name: "Sources", href: "/sources", icon: <Globe size={18} /> },
   { name: "Configuration", href: "/config", icon: <Settings size={18} /> },
 ];

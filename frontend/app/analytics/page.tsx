@@ -395,7 +395,7 @@ export default function AnalyticsPage() {
                     </div>
                     <Sparkles size={16} className="text-indigo-400" />
                   </div>
-                  <SentimentPieChart data={sentimentData} className="h-48" />
+                  <SentimentPieChart data={sentimentData} className="h-64" />
                 </div>
 
                 {/* Mentions Over Time */}

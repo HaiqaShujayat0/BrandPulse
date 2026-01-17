@@ -83,8 +83,8 @@ export function SentimentPieChart({ data, className }: SentimentPieChartProps) {
                         data={chartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
+                        innerRadius={50}
+                        outerRadius={75}
                         paddingAngle={3}
                         dataKey="value"
                         animationBegin={0}

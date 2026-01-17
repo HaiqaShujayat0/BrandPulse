@@ -1,0 +1,520 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// ============================================================================
+// LOCAL SENTIMENT KEYWORDS (Zero API Cost) - COMPREHENSIVE LIST
+// Designed to catch news-style headlines without needing Gemini API
+// ============================================================================
+const POSITIVE_KEYWORDS = [
+    // General positive
+    'great', 'amazing', 'love', 'best', 'excellent', 'awesome', 'fantastic',
+    'perfect', 'brilliant', 'wonderful', 'helpful', 'fast', 'fixed', 'solved',
+    'recommend', 'impressed', 'easy', 'smooth', 'beautiful', 'powerful',
+    'incredible', 'outstanding', 'superb', 'delightful', 'reliable',
+    'efficient', 'innovative', 'seamless', 'intuitive', 'revolutionary',
+    // Emotions
+    'thrilled', 'excited', 'happy', 'grateful', 'pleased', 'satisfied',
+    'hopeful', 'optimistic', 'confident', 'proud', 'inspired',
+    // Success/Achievement
+    'success', 'successful', 'win', 'winning', 'won', 'victory', 'victorious',
+    'breakthrough', 'achievement', 'milestone', 'triumph', 'accomplish',
+    // Growth/Progress
+    'growth', 'growing', 'improve', 'improved', 'improvement', 'progress',
+    'advance', 'advancement', 'upgrade', 'boost', 'surge', 'soar', 'rise',
+    // Value
+    'worth', 'valuable', 'quality', 'premium', 'benefit', 'beneficial',
+    // Peace/Stability
+    'peace', 'peaceful', 'stable', 'stability', 'calm', 'safe', 'safety',
+    'agreement', 'treaty', 'deal', 'resolution', 'resolved', 'ceasefire',
+    // Recovery
+    'recover', 'recovery', 'rebound', 'bounce', 'restore', 'restored',
+    'rebuild', 'rebuilding', 'heal', 'healing',
+    // Support
+    'support', 'supported', 'help', 'helped', 'aid', 'relief', 'rescue',
+    'saved', 'save', 'protect', 'protected',
+    // SCIENCE/RESEARCH positive
+    'discovery', 'discovered', 'breakthrough', 'innovation', 'innovate',
+    'cure', 'cured', 'treatment', 'vaccine', 'approved', 'approval',
+    'promising', 'effective', 'efficacy', 'groundbreaking', 'pioneering',
+    'advancement', 'research', 'findings', 'proven', 'validated',
+    'clinical', 'trial', 'success', 'remission', 'recovery',
+    // BUSINESS positive
+    'profit', 'profitable', 'revenue', 'earnings', 'ipo', 'funding',
+    'investment', 'investor', 'valuation', 'acquisition', 'merger',
+    'partnership', 'expand', 'expansion', 'launch', 'launched',
+    'unicorn', 'record', 'beat', 'exceeds', 'outperform', 'rally',
+    'bullish', 'uptrend', 'dividend', 'stock', 'gains', 'soaring',
+    'billion', 'million', 'growth', 'market', 'shares', 'trading'
+];
+
+const NEGATIVE_KEYWORDS = [
+    // General negative
+    'bad', 'worst', 'hate', 'broken', 'slow', 'expensive', 'scam', 'fail',
+    'terrible', 'awful', 'horrible', 'frustrating', 'annoying', 'bug', 'error',
+    'crash', 'sucks', 'disappointed', 'useless', 'waste', 'problem', 'issue',
+    'poor', 'defective', 'unreliable', 'overpriced', 'misleading',
+    'laggy', 'unstable', 'confusing', 'flawed', 'mediocre',
+    // Violence/Conflict (NEWS)
+    'war', 'wars', 'attack', 'attacked', 'attacks', 'bomb', 'bombing', 'bombed',
+    'kill', 'killed', 'killing', 'murder', 'murdered', 'death', 'deaths', 'dead',
+    'die', 'died', 'dying', 'victim', 'victims', 'casualty', 'casualties',
+    'violence', 'violent', 'fight', 'fighting', 'combat', 'battle', 'battlefield',
+    'shoot', 'shooting', 'shot', 'gunfire', 'massacre', 'slaughter',
+    'terror', 'terrorist', 'terrorism', 'extremist', 'extremism',
+    // Crisis/Disaster (NEWS)
+    'crisis', 'crises', 'disaster', 'catastrophe', 'catastrophic', 'emergency',
+    'collapse', 'collapsed', 'collapsing', 'crash', 'crashed', 'crashing',
+    'threat', 'threaten', 'threatened', 'threatening', 'danger', 'dangerous',
+    'risk', 'risky', 'hazard', 'hazardous', 'peril',
+    // Protest/Unrest (NEWS)
+    'protest', 'protests', 'protester', 'protesters', 'protesting',
+    'riot', 'riots', 'rioter', 'rioters', 'rioting', 'unrest',
+    'uprising', 'revolt', 'rebellion', 'clash', 'clashes', 'clashing',
+    'tension', 'tensions', 'turmoil', 'chaos', 'chaotic',
+    // Sanctions/Conflict (NEWS)
+    'sanction', 'sanctions', 'sanctioned', 'embargo', 'blockade',
+    'conflict', 'conflicts', 'dispute', 'disputed', 'hostage', 'hostages',
+    'invasion', 'invade', 'invaded', 'occupy', 'occupied', 'occupation',
+    // Economic negative (NEWS)
+    'recession', 'inflation', 'downturn', 'decline', 'declining', 'plunge',
+    'plummet', 'drop', 'dropped', 'fall', 'falling', 'fell', 'loss', 'losses',
+    'layoff', 'layoffs', 'fired', 'unemployment', 'bankrupt', 'bankruptcy',
+    // Emotions
+    'angry', 'anger', 'upset', 'furious', 'outraged', 'outrage', 'disgust',
+    'disgusted', 'regret', 'fear', 'fears', 'feared', 'worried', 'worry',
+    'concern', 'concerned', 'concerning', 'alarming', 'alarmed',
+    // Fraud/Crime
+    'fraud', 'fake', 'lie', 'lies', 'lying', 'scamming', 'stealing', 'stole',
+    'theft', 'corrupt', 'corruption', 'bribe', 'bribery', 'crime', 'criminal',
+    // Failure
+    'failure', 'failed', 'failing', 'flop', 'flopped', 'bust', 'busted',
+    'worse', 'worsening', 'worsen', 'deteriorate', 'deteriorating',
+    // SCIENCE/RESEARCH negative
+    'outbreak', 'pandemic', 'epidemic', 'infection', 'infected', 'virus',
+    'disease', 'illness', 'symptom', 'symptoms', 'mutation', 'mutant',
+    'contamination', 'contaminated', 'toxic', 'toxicity', 'carcinogen',
+    'cancer', 'tumor', 'mortality', 'fatality', 'side-effect', 'adverse',
+    'recalled', 'recall', 'unsafe', 'warning', 'hazardous', 'radiation',
+    // BUSINESS negative
+    'lawsuit', 'sued', 'suing', 'litigation', 'fine', 'fined', 'penalty',
+    'investigation', 'investigated', 'probe', 'scandal', 'controversy',
+    'bearish', 'downtrend', 'selloff', 'sell-off', 'dumping', 'crashing',
+    'defaults', 'defaulted', 'debt', 'deficit', 'shortfall', 'miss',
+    'missed', 'underperform', 'slump', 'slumping', 'tank', 'tanking',
+    'cuts', 'cutback', 'restructure', 'restructuring', 'downgrade',
+    'delisted', 'fraud', 'embezzle', 'embezzlement', 'ponzi', 'insider'
+];
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+export interface SentimentResult {
+    sentiment: 'positive' | 'negative' | 'neutral';
+    score: number; // 0-1 confidence
+}
+
+export interface AnalysisResult {
+    summary: string;
+    sentimentShift: string;
+    topTopics: string[];
+    updatedAt: string;
+}
+
+export interface TopicResult {
+    topic: string;
+    count: number;
+    sentiment: 'positive' | 'negative' | 'neutral';
+}
+
+// ============================================================================
+// LOCAL SENTIMENT ANALYSIS (Free, Instant)
+// ============================================================================
+
+/**
+ * Quickly determines sentiment using keyword matching - NO API COST
+ * Returns null if uncertain (mixed signals or no keywords found)
+ */
+export function getLocalSentiment(text: string): SentimentResult | null {
+    const lower = text.toLowerCase();
+
+    let posScore = 0;
+    let negScore = 0;
+
+    POSITIVE_KEYWORDS.forEach(word => {
+        if (lower.includes(word)) posScore++;
+    });
+
+    NEGATIVE_KEYWORDS.forEach(word => {
+        if (lower.includes(word)) negScore++;
+    });
+
+    // Clear positive signal
+    if (posScore > 0 && negScore === 0) {
+        return { sentiment: 'positive', score: Math.min(0.7 + (posScore * 0.05), 0.95) };
+    }
+
+    // Clear negative signal
+    if (negScore > 0 && posScore === 0) {
+        return { sentiment: 'negative', score: Math.min(0.7 + (negScore * 0.05), 0.95) };
+    }
+
+    // Mixed signals or no keywords - return null to indicate AI should analyze
+    if (posScore === 0 && negScore === 0) {
+        // No strong signals - mark as neutral with low confidence
+        return { sentiment: 'neutral', score: 0.5 };
+    }
+
+    // Mixed signals - needs AI to determine
+    return null;
+}
+
+/**
+ * Checks if a mention has "high impact" keywords worth AI analysis
+ */
+export function isHighImpact(text: string): boolean {
+    const lower = text.toLowerCase();
+    return NEGATIVE_KEYWORDS.some(w => lower.includes(w)) ||
+        POSITIVE_KEYWORDS.some(w => lower.includes(w));
+}
+
+// ============================================================================
+// GEMINI AI ANALYSIS (Rate Limited)
+// ============================================================================
+
+/**
+ * Analyze sentiment of a single mention using Gemini AI
+ * Use sparingly due to rate limits
+ */
+export async function analyzeSentiment(text: string): Promise<SentimentResult> {
+    // First try local analysis
+    const localResult = getLocalSentiment(text);
+    if (localResult) {
+        return localResult;
+    }
+
+    // If local analysis is uncertain, use AI
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+        const prompt = `Analyze the sentiment of the following text and respond with ONLY a JSON object in this exact format:
+{"sentiment": "positive" | "negative" | "neutral", "score": 0.0 to 1.0}
+
+Text to analyze:
+"${text.slice(0, 500)}"
+
+Respond with ONLY the JSON, no other text.`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response.text().trim();
+
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+                sentiment: parsed.sentiment || 'neutral',
+                score: typeof parsed.score === 'number' ? parsed.score : 0.5,
+            };
+        }
+
+        return { sentiment: 'neutral', score: 0.5 };
+    } catch (error) {
+        console.error('Gemini sentiment analysis error:', error);
+        return { sentiment: 'neutral', score: 0.5 };
+    }
+}
+
+/**
+ * OPTIMIZED: Batch analyze sentiment for multiple mentions in ONE API call
+ * Reduces 600+ API calls down to ~60 calls (10 mentions per call)
+ */
+export async function batchAnalyzeSentiment(
+    items: { id: string; text: string }[]
+): Promise<Map<string, SentimentResult>> {
+    const results = new Map<string, SentimentResult>();
+    const needsAI: { id: string; text: string }[] = [];
+
+    console.log(`\n📊 Processing ${items.length} mentions...`);
+
+    // Step 1: Try local analysis first (FREE)
+    for (const item of items) {
+        const localResult = getLocalSentiment(item.text);
+        if (localResult) {
+            results.set(item.id, localResult);
+        } else {
+            needsAI.push(item);
+        }
+    }
+
+    console.log(`✅ Local analysis: ${items.length - needsAI.length} processed`);
+    console.log(`🤖 Needs AI: ${needsAI.length} items`);
+
+    if (needsAI.length === 0) {
+        return results;
+    }
+
+    // Step 2: Process remaining items with Gemini in batches of 10
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const BATCH_SIZE = 10;
+    const DELAY_MS = 5000; // 5 seconds between batches (12 requests/min, under 15 RPM limit)
+
+    for (let i = 0; i < needsAI.length; i += BATCH_SIZE) {
+        const batch = needsAI.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(needsAI.length / BATCH_SIZE);
+
+        console.log(`\n🔄 Processing batch ${batchNum}/${totalBatches} (${batch.length} items)...`);
+
+        const prompt = `Analyze the sentiment of these ${batch.length} text snippets.
+Respond ONLY with a JSON array in this exact format:
+[{"id": "the_id", "sentiment": "positive" or "negative" or "neutral", "score": 0.0 to 1.0}]
+
+Data to analyze:
+${batch.map(item => `ID: ${item.id} | Text: ${item.text.slice(0, 200)}`).join('\n')}
+
+Respond with ONLY the JSON array, no other text.`;
+
+        try {
+            const result = await model.generateContent(prompt);
+            const response = result.response.text().trim();
+            const jsonMatch = response.match(/\[[\s\S]*\]/);
+
+            if (jsonMatch) {
+                const parsed: { id: string; sentiment: string; score: number }[] = JSON.parse(jsonMatch[0]);
+                parsed.forEach(res => {
+                    if (res.id && res.sentiment) {
+                        results.set(res.id, {
+                            sentiment: res.sentiment as 'positive' | 'negative' | 'neutral',
+                            score: typeof res.score === 'number' ? res.score : 0.5
+                        });
+                    }
+                });
+                console.log(`   ✅ Batch ${batchNum} complete: ${parsed.length} analyzed`);
+            } else {
+                console.log(`   ⚠️ Batch ${batchNum}: Could not parse response`);
+                // Mark all as neutral on parse failure
+                batch.forEach(item => {
+                    results.set(item.id, { sentiment: 'neutral', score: 0.5 });
+                });
+            }
+
+            // Wait between batches to respect rate limits
+            if (i + BATCH_SIZE < needsAI.length) {
+                console.log(`   ⏳ Waiting ${DELAY_MS / 1000}s before next batch...`);
+                await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+            }
+
+        } catch (error: any) {
+            console.error(`   ❌ Batch ${batchNum} error:`, error.message?.slice(0, 100));
+
+            // Check for rate limit error
+            if (error.message?.includes('429')) {
+                console.log(`   🛑 Rate limited! Waiting 60 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 60000));
+                i -= BATCH_SIZE; // Retry this batch
+            } else {
+                // Mark failed batch as neutral
+                batch.forEach(item => {
+                    results.set(item.id, { sentiment: 'neutral', score: 0.5 });
+                });
+            }
+        }
+    }
+
+    console.log(`\n✅ Batch processing complete: ${results.size} total analyzed`);
+    return results;
+}
+
+/**
+ * Generate AI analysis summary for a brand's recent mentions
+ * Falls back to local data-driven analysis if Gemini API fails
+ */
+export async function generateBrandAnalysis(
+    brandName: string,
+    mentions: { title: string; content: string; sentiment?: string | null }[]
+): Promise<AnalysisResult> {
+    const positiveCount = mentions.filter(m => m.sentiment === 'positive').length;
+    const negativeCount = mentions.filter(m => m.sentiment === 'negative').length;
+    const neutralCount = mentions.filter(m => m.sentiment === 'neutral').length;
+    const totalCount = mentions.length;
+
+    // Calculate sentiment percentages
+    const posPercent = totalCount > 0 ? Math.round((positiveCount / totalCount) * 100) : 0;
+    const negPercent = totalCount > 0 ? Math.round((negativeCount / totalCount) * 100) : 0;
+
+    // Generate local fallback first (in case API fails)
+    const generateLocalAnalysis = (): AnalysisResult => {
+        let summary: string;
+        let sentimentShift: string;
+
+        if (totalCount === 0) {
+            summary = `No recent mentions found for ${brandName}.`;
+            sentimentShift = 'stable';
+        } else if (negPercent > 20) {
+            summary = `${brandName} is experiencing elevated negative sentiment with ${negPercent}% negative mentions. Monitor for potential issues.`;
+            sentimentShift = `${negPercent}% negative`;
+        } else if (posPercent > 30) {
+            summary = `${brandName} sentiment is positive with ${posPercent}% favorable mentions across ${totalCount} discussions.`;
+            sentimentShift = `${posPercent}% positive`;
+        } else {
+            summary = `${brandName} has ${totalCount} recent mentions with balanced sentiment (${posPercent}% positive, ${negPercent}% negative).`;
+            sentimentShift = 'stable';
+        }
+
+        // Extract simple topics from mention titles
+        const topTopics = extractLocalTopics(mentions.map(m => m.title));
+
+        return {
+            summary,
+            sentimentShift,
+            topTopics,
+            updatedAt: new Date().toISOString(),
+        };
+    };
+
+    // Try Gemini API first
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+        const mentionSummaries = mentions.slice(0, 20).map(m =>
+            `- ${m.title} (${m.sentiment || 'unknown'})`
+        ).join('\n');
+
+        const prompt = `You are analyzing brand mentions for "${brandName}". 
+    
+Recent mentions (${totalCount} total, ${positiveCount} positive, ${negativeCount} negative):
+${mentionSummaries}
+
+Generate a brief, professional analysis summary in this exact JSON format:
+{
+  "summary": "A 1-2 sentence insight about recent brand sentiment and discussions",
+  "sentimentShift": "X% more positive" or "X% more negative" or "stable",
+  "topTopics": ["topic1", "topic2", "topic3"]
+}
+
+Be specific and data-driven. Respond with ONLY the JSON.`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response.text().trim();
+
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+                summary: parsed.summary || generateLocalAnalysis().summary,
+                sentimentShift: parsed.sentimentShift || 'stable',
+                topTopics: Array.isArray(parsed.topTopics) ? parsed.topTopics : [],
+                updatedAt: new Date().toISOString(),
+            };
+        }
+
+        // API returned but couldn't parse - use local fallback
+        return generateLocalAnalysis();
+    } catch (error: any) {
+        // Suppress verbose error logs - just use local fallback silently
+        const isRateLimit = error.status === 429 || error.message?.includes('429');
+        if (isRateLimit) {
+            console.log('[Gemini] Rate limited - using local analysis');
+        } else if (error.status === 403) {
+            console.log('[Gemini] API key invalid - using local analysis');
+        } else {
+            console.log('[Gemini] Error - using local analysis:', error.message?.slice(0, 50));
+        }
+        return generateLocalAnalysis();
+    }
+}
+
+/**
+ * Extract simple topics from titles using word frequency (no API needed)
+ */
+function extractLocalTopics(titles: string[]): string[] {
+    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+        'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+        'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'to', 'of',
+        'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
+        'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then',
+        'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more',
+        'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
+        'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or', 'because', 'as', 'until',
+        'while', 'this', 'that', 'these', 'those', 'what', 'which', 'who', 'whom', 'i', 'you',
+        'he', 'she', 'it', 'we', 'they', 'my', 'your', 'his', 'her', 'its', 'our', 'their']);
+
+    const wordCounts = new Map<string, number>();
+
+    titles.forEach(title => {
+        const words = title.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .split(/\s+/)
+            .filter(w => w.length > 3 && !stopWords.has(w));
+
+        words.forEach(word => {
+            wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+        });
+    });
+
+    // Get top 3 most frequent words
+    return Array.from(wordCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
+}
+
+/**
+ * Extract popular topics from mentions using Gemini
+ * Falls back to local word frequency analysis if API fails
+ */
+export async function extractTopics(
+    mentions: { title: string; content: string }[]
+): Promise<TopicResult[]> {
+    // Generate local fallback first
+    const localTopics = extractLocalTopics(mentions.map(m => m.title));
+    const localFallback: TopicResult[] = localTopics.map(topic => ({
+        topic,
+        count: mentions.filter(m =>
+            m.title.toLowerCase().includes(topic.toLowerCase())
+        ).length,
+        sentiment: 'neutral' as const,
+    }));
+
+    // Skip Gemini if no API key or mentions are empty
+    if (!process.env.GEMINI_API_KEY || mentions.length === 0) {
+        return localFallback;
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+        const texts = mentions.slice(0, 30).map(m => m.title).join('\n');
+
+        const prompt = `Analyze these headlines and extract the top 5 most discussed topics/themes:
+
+${texts}
+
+Respond with ONLY a JSON array in this format:
+[
+  {"topic": "Topic Name", "count": estimated_mentions, "sentiment": "positive" | "negative" | "neutral"}
+]
+
+Be specific with topic names. Respond with ONLY the JSON array.`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response.text().trim();
+
+        const jsonMatch = response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        return localFallback;
+    } catch (error: any) {
+        // Suppress verbose errors - just log briefly and use local fallback
+        const isRateLimit = error.status === 429 || error.message?.includes('429');
+        if (isRateLimit) {
+            console.log('[Gemini Topics] Rate limited - using local extraction');
+        } else {
+            console.log('[Gemini Topics] Error - using local extraction');
+        }
+        return localFallback;
+    }
+}

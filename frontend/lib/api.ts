@@ -101,8 +101,7 @@ export interface CreateBrandRequest {
   excludedTerms: string[];
 }
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 // Mock data generator for demo/fallback
 function generateMockMentions(count: number = 25): Mention[] {
@@ -359,6 +358,68 @@ export async function triggerBrandScrape(brandId: string): Promise<{ message: st
     return handleResponse<{ message: string; brandId: string }>(res);
   } catch (error) {
     console.warn("Failed to trigger brand scrape:", error);
+    return null;
+  }
+}
+
+/**
+ * Re-analyze all existing mentions with updated keyword lists
+ * Uses FREE local analysis, not Gemini API
+ */
+export async function reanalyzeBrandMentions(brandId: string): Promise<{ updated: number; breakdown: { positive: number; negative: number; neutral: number } } | null> {
+  const url = `${BASE_URL}/api/brands/${encodeURIComponent(brandId)}/reanalyze`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Accept": "application/json" },
+    });
+    return handleResponse<{ updated: number; breakdown: { positive: number; negative: number; neutral: number } }>(res);
+  } catch (error) {
+    console.warn("Failed to reanalyze mentions:", error);
+    return null;
+  }
+}
+
+/**
+ * Update an existing brand
+ */
+export async function updateBrand(
+  brandId: string,
+  data: { name: string; searchTerms: string[]; excludedTerms: string[] }
+): Promise<Brand | null> {
+  const url = `${BASE_URL}/api/brands/${encodeURIComponent(brandId)}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Brand>(res);
+  } catch (error) {
+    console.warn("Failed to update brand:", error);
+    return null;
+  }
+}
+
+/**
+ * Delete a brand and all its mentions
+ */
+export async function deleteBrand(brandId: string): Promise<{ message: string } | null> {
+  const url = `${BASE_URL}/api/brands/${encodeURIComponent(brandId)}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: { "Accept": "application/json" },
+    });
+    return handleResponse<{ message: string }>(res);
+  } catch (error) {
+    console.warn("Failed to delete brand:", error);
     return null;
   }
 }
