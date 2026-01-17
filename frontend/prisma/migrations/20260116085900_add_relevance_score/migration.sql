@@ -1,3 +1,4 @@
+
 -- AlterTable: Add relevanceScore column to Mention
 -- This score represents how many search terms matched in the mention (0 to N)
 -- Higher score = more relevant post (matches more keywords)
